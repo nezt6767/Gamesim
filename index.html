@@ -107,7 +107,11 @@ if (TODAY) for (const sp of ['nba','nhl']) for (const list of Object.values((TOD
 function banners(){
   let h='';
   if (D.demo) h+='<div class="banner"><b>Demo data.</b> These teams and players are fictional. Run <code>python fetch_data.py</code> to load real NBA/NHL stats from the last two seasons.</div>';
-  else h+=`<div class="banner">Stats built ${D.generated} (recent games weighted more).</div>`;
+  else {
+    h+=`<div class="banner">Stats built ${D.generated} (recent games weighted more).</div>`;
+    const ds=(D.demoSports||[]).map(x=>x.toUpperCase()).join(' and ');
+    if (ds) h+=`<div class="banner"><b>${ds} is still on fictional demo teams.</b> Its stats could not be downloaded automatically.</div>`;
+  }
   if (TODAY) h+=`<div class="banner">Schedule &amp; injuries updated ${TODAY.updated.replace('T',' ')}.</div>`;
   else h+='<div class="banner">No daily schedule/injury file yet — run <code>python fetch_data.py daily</code> (or set up the included GitHub Action).</div>';
   $('banners').innerHTML=h;
