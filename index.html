@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Game Sim Lab</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#14181f;--mute:#5d6674;--line:#e2e6ec;--acc:#1f6feb;--home:#1f6feb;--away:#d9480f;--ok:#2b8a3e;--warn:#b7791f}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1318;--card:#171c23;--ink:#e8ebf0;--mute:#9aa4b2;--line:#262d37;--acc:#58a6ff;--home:#58a6ff;--away:#ff8a4c;--ok:#56d364;--warn:#e3b341}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+main{max-width:720px;margin:0 auto;padding:12px 16px 48px}
+h1{font-size:20px;margin:8px 0 2px}
+.sub{color:var(--mute);font-size:13px;margin-bottom:10px}
+.tabs{display:flex;gap:8px;margin:10px 0}
+.tab{flex:1;padding:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;font-weight:600;font-size:15px}
+.tab.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin:10px 0}
+.card h2{font-size:15px;margin:0 0 8px}
+.banner{font-size:13px;padding:8px 10px;border-radius:8px;background:color-mix(in srgb,var(--warn) 14%,transparent);border:1px solid color-mix(in srgb,var(--warn) 40%,transparent);margin:8px 0}
+select,input[type=number]{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font-size:16px}
+label{font-size:12px;color:var(--mute);display:block;margin:6px 0 3px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.games{display:flex;flex-direction:column;gap:6px}
+.game{display:flex;justify-content:space-between;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font-size:15px;text-align:left;width:100%}
+.game small{color:var(--mute)}
+button.run{width:100%;margin-top:10px;padding:13px;background:var(--acc);color:#fff;border:0;border-radius:10px;font-size:16px;font-weight:700}
+.roster{display:grid;grid-template-columns:1fr;gap:2px;font-size:14px}
+.pl{display:flex;align-items:center;gap:8px;padding:6px 2px;border-bottom:1px solid var(--line)}
+.pl input{width:20px;height:20px}
+.pl .nm{flex:1}
+.pill{font-size:11px;padding:2px 7px;border-radius:99px;background:var(--line);color:var(--mute)}
+.pill.out{background:color-mix(in srgb,var(--away) 20%,transparent);color:var(--away)}
+.pill.dtd{background:color-mix(in srgb,var(--warn) 20%,transparent);color:var(--warn)}
+.bar{display:flex;height:34px;border-radius:8px;overflow:hidden;font-weight:700;color:#fff;font-size:14px}
+.bar div{display:flex;align-items:center;justify-content:center;min-width:0}
+.big{display:flex;justify-content:space-between;font-size:13px;color:var(--mute);margin-bottom:4px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;text-align:center}
+.stats b{display:block;font-size:18px}.stats span{font-size:12px;color:var(--mute)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+td,th{padding:5px 2px;border-bottom:1px solid var(--line);text-align:right}td:first-child,th:first-child{text-align:left}
+th{font-size:12px;color:var(--mute);font-weight:600}
+.note{font-size:12px;color:var(--mute);margin-top:6px}
+svg text{fill:var(--mute);font-size:10px}
+.sb{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;text-align:center;margin:10px 0}
+.sb .tm{font-size:13px;color:var(--mute);min-width:0;overflow-wrap:anywhere}.sb .sc{font-size:40px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1}
+.clock{font-variant-numeric:tabular-nums;font-weight:700;font-size:15px;text-align:center}
+.prog{height:6px;background:var(--line);border-radius:4px;overflow:hidden;margin:8px 0}.prog i{display:block;height:100%;width:0;background:var(--acc)}
+.ctl{display:flex;gap:8px;margin:8px 0}.ctl button,.ctl select{flex:1;padding:9px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font-size:14px}
+.feed{max-height:260px;overflow-y:auto;border-top:1px solid var(--line);font-size:14px}
+.feed div{display:flex;gap:8px;padding:6px 2px;border-bottom:1px solid var(--line)}.feed time{color:var(--mute);font-variant-numeric:tabular-nums;min-width:62px}
+.feed .h b{color:var(--home)}.feed .a b{color:var(--away)}
+</style>
+</head>
+<body>
+<main>
+  <h1>Game Sim Lab</h1>
+  <div class="sub">Monte Carlo NBA &amp; NHL simulator · weighted last-2-seasons stats · injury-aware</div>
+  <div id="banners"></div>
+  <div class="tabs"><button class="tab on" data-s="nba">NBA</button><button class="tab" data-s="nhl">NHL</button></div>
+
+  <div class="card" id="todayCard"><h2>Today &amp; upcoming games</h2><div class="games" id="games"></div></div>
+
+  <div class="card">
+    <h2>Matchup</h2>
+    <div class="row">
+      <div><label>Away</label><select id="away"></select></div>
+      <div><label>Home</label><select id="home"></select></div>
+    </div>
+    <div class="row" id="goalieRow" style="display:none">
+      <div><label>Away goalie</label><select id="gAway"></select></div>
+      <div><label>Home goalie</label><select id="gHome"></select></div>
+    </div>
+    <label>Simulations</label>
+    <input type="number" id="nsim" value="10000" min="1000" max="200000" step="1000">
+    <label class="pl" style="margin-top:8px"><input type="checkbox" id="useM" checked><span class="nm">Use home/away splits &amp; head-to-head history</span></label>
+  </div>
+
+  <div class="card">
+    <h2>Active players <span class="note">(uncheck = sits out)</span></h2>
+    <div class="row">
+      <div><div class="note" id="awayTitle"></div><div class="roster" id="awayRoster"></div></div>
+      <div><div class="note" id="homeTitle"></div><div class="roster" id="homeRoster"></div></div>
+    </div>
+    <div class="note">Players reported Out are unchecked automatically; Day-to-Day / Questionable stay checked — toggle them yourself.</div>
+  </div>
+
+  <button class="run" id="run">Simulate game</button>
+  <div id="results"></div>
+</main>
+
+<!-- INLINE_SCRIPTS_START -->
+<script src="sim.js"></script>
+<script src="data.js"></script>
+<script src="today.js"></script>
+<!-- INLINE_SCRIPTS_END -->
+<script>
+const D = window.SIM_DATA, TODAY = window.SIM_TODAY;
+let sport = 'nba', lastRun = null, raf = 0;
+const $ = id => document.getElementById(id);
+const norm = s => (s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/\b(jr|sr|ii|iii|iv)\b\.?/g,'').replace(/[^a-z0-9 ]/g,'').replace(/\s+/g,' ').trim();
+
+// injury lookup: normalized player name -> {status, note}
+const injMap = {nba:{},nhl:{}};
+if (TODAY) for (const sp of ['nba','nhl']) for (const list of Object.values((TODAY[sp]||{}).injuries||{})) for (const it of list) injMap[sp][norm(it.name)] = it;
+
+function banners(){
+  let h='';
+  if (D.demo) h+='<div class="banner"><b>Demo data.</b> These teams and players are fictional. Run <code>python fetch_data.py</code> to load real NBA/NHL stats from the last two seasons.</div>';
+  else h+=`<div class="banner">Stats built ${D.generated} (recent games weighted more).</div>`;
+  if (TODAY) h+=`<div class="banner">Schedule &amp; injuries updated ${TODAY.updated.replace('T',' ')}.</div>`;
+  else h+='<div class="banner">No daily schedule/injury file yet — run <code>python fetch_data.py daily</code> (or set up the included GitHub Action).</div>';
+  $('banners').innerHTML=h;
+}
+function teams(){ return (D[sport]||{teams:{}}).teams; }
+function fillTeams(){
+  const t = teams(), keys = Object.keys(t).sort((a,b)=>t[a].name.localeCompare(t[b].name));
+  const opts = keys.map(k=>`<option value="${k}">${t[k].name}</option>`).join('');
+  $('away').innerHTML=opts; $('home').innerHTML=opts;
+  if (keys.length>1) $('home').value=keys[1];
+  $('goalieRow').style.display = sport==='nhl' ? '' : 'none';
+  renderGames(); renderRosters();
+}
+function renderGames(){
+  const g = TODAY && TODAY[sport] ? TODAY[sport].games.filter(x=>teams()[x.home]&&teams()[x.away]) : [];
+  $('todayCard').style.display = g.length ? '' : 'none';
+  $('games').innerHTML = g.map((x,i)=>{
+    const d = x.date ? new Date(x.date) : null;
+    const when = d ? d.toLocaleString([], {weekday:'short',hour:'numeric',minute:'2-digit'}) : '';
+    return `<button class="game" data-i="${i}"><span>${teams()[x.away].name} @ ${teams()[x.home].name}</span><small>${when}</small></button>`;
+  }).join('');
+  document.querySelectorAll('.game').forEach(b=>b.onclick=()=>{ const x=g[+b.dataset.i]; $('away').value=x.away; $('home').value=x.home; renderRosters(); $('away').scrollIntoView({behavior:'smooth',block:'center'}); });
+}
+function rosterHtml(key, side){
+  const t = teams()[key]; if(!t) return '';
+  return t.players.map((p,i)=>{
+    const inj = injMap[sport][norm(p.name)];
+    const st = inj ? inj.status : '';
+    const isOut = /^out/i.test(st);
+    const pill = st ? `<span class="pill ${isOut?'out':'dtd'}" title="${(inj.note||'').replace(/"/g,'')}">${st}</span>` : '';
+    return `<label class="pl"><input type="checkbox" data-side="${side}" data-name="${p.name.replace(/"/g,'&quot;')}" ${isOut?'':'checked'}><span class="nm">${p.name}</span>${pill}</label>`;
+  }).join('');
+}
+function renderRosters(){
+  const a=$('away').value, h=$('home').value;
+  $('awayTitle').textContent=(teams()[a]||{}).name||''; $('homeTitle').textContent=(teams()[h]||{}).name||'';
+  $('awayRoster').innerHTML=rosterHtml(a,'a'); $('homeRoster').innerHTML=rosterHtml(h,'h');
+  if (sport==='nhl'){
+    const fill=(sel,key)=>{ const t=teams()[key]; $(sel).innerHTML=(t?t.goalies:[]).map(g=>`<option>${g.name}</option>`).join(''); };
+    fill('gAway',a); fill('gHome',h);
+  }
+}
+function outSet(side){ return new Set([...document.querySelectorAll(`input[data-side="${side}"]`)].filter(c=>!c.checked).map(c=>c.dataset.name)); }
+
+function fmtClock(t){
+  if (lastRun.sport==='nba'){
+    const reg=2880; let p,rem;
+    if (t<reg){p=Math.floor(t/720);rem=720-(t-p*720);p='Q'+(p+1);} else {const o=Math.floor((t-reg)/300);rem=300-(t-reg-o*300);p='OT'+(o+1>1?o+1:'');}
+    rem=Math.max(0,Math.ceil(rem)); return p+' '+Math.floor(rem/60)+':'+String(rem%60).padStart(2,'0');
+  }
+  let p,rem;
+  if (t<3600){p=Math.floor(t/1200);rem=1200-(t-p*1200);p='P'+(p+1);} else {p='OT';rem=300-(t-3600);}
+  rem=Math.max(0,Math.ceil(rem)); return p+' '+Math.floor(rem/60)+':'+String(rem%60).padStart(2,'0');
+}
+function startReplay(){
+  cancelAnimationFrame(raf);
+  const {sport:sp,A,H,r,opts}=lastRun;
+  const avg={h:r.avgHome,a:r.avgAway};
+  const g = sp==='nba' ? Sim.replayNBA(H,A,opts,avg) : Sim.replayNHL(H,A,opts,avg);
+  if(!g){ $('replay').innerHTML='<div class="banner">Could not build a typical game for this matchup. Try again.</div>'; return; }
+  lastRun.g=g;
+  const total = sp==='nba' ? g.endT : (g.kind==='reg'?3600:g.endT);
+  const dec = sp==='nba'?0:0;
+  $('replay').innerHTML=`
+    <div class="sb"><div class="tm">${A.name}<div class="sc" id="sa">0</div></div><div class="clock" id="clk">—</div><div class="tm">${H.name}<div class="sc" id="sh">0</div></div></div>
+    <div class="prog"><i id="pg"></i></div>
+    ${sp==='nhl'?'<div class="note" id="shots" style="text-align:center">Shots 0 – 0</div>':''}
+    <div class="ctl"><button id="pp">Pause</button><select id="spd" aria-label="Playback speed"><option value="10" selected>10× speed</option><option value="30">30× speed</option><option value="60">60× speed</option><option value="150">150× speed</option></select><button id="rs">Restart</button><button id="sk">Skip to end</button></div>
+    <div class="feed" id="feed" aria-live="polite"></div>
+    <div class="note">Speed = game-clock seconds per real second (10× plays a 48-minute NBA game in under 5 minutes). This is one typical simulated game, not a prediction of the exact play-by-play.</div>`;
+  let i=0, t=0, last=performance.now(), playing=true, S=[0,0], shots=[0,0];
+  const feed=$('feed');
+  function addEv(e){
+    if (e.shot){ shots[e.side==='h'?0:1]++; if($('shots')) $('shots').textContent=`Shots ${shots[1]} – ${shots[0]}`; return; }
+    if (e.side==='h') S[0]+= (sp==='nba'?e.pts:1); else S[1]+=(sp==='nba'?e.pts:1);
+    $('sh').textContent=S[0]; $('sa').textContent=S[1];
+    const who = e.so ? 'Shootout winner' : e.player;
+    const what = sp==='nba' ? `${who} scores ${e.pts}` : (e.so ? `${who} (${e.side==='h'?H.name:A.name})` : `${who} scores${e.ot?' in overtime':''}`);
+    const d=document.createElement('div'); d.className=e.side;
+    d.innerHTML=`<time>${e.so?'SO':fmtClock(Math.min(e.t,total))}</time><span><b>${S[1]}–${S[0]}</b> ${what}</span>`;
+    feed.prepend(d);
+  }
+  function frame(now){
+    if(!$('spd')){return;}
+    const dt=Math.max(0,(now-last)/1000); last=now;
+    if(playing){ t=Math.min(total, t+dt*(+$('spd').value)); }
+    while(i<g.events.length && g.events[i].t<=t){ addEv(g.events[i]); i++; }
+    $('clk').textContent = t>=total ? 'Final' : fmtClock(t);
+    $('pg').style.width=(t/total*100)+'%';
+    if(t<total) raf=requestAnimationFrame(frame);
+    else { while(i<g.events.length){addEv(g.events[i]);i++;} $('pp').textContent='Replay'; }
+  }
+  $('pp').onclick=()=>{ if(t>=total){startReplay();return;} playing=!playing; $('pp').textContent=playing?'Pause':'Play'; };
+  $('rs').onclick=startReplay;
+  $('sk').onclick=()=>{ t=total; };
+  raf=requestAnimationFrame(frame);
+  $('replay').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+
+function factorsHtml(sp, r, A, H, lg){
+  const F=r.factors; if(!F||!F.on) return '<div class="card"><h2>Matchup factors</h2><div class="note">Off. Using season-long team and player ratings only.</div></div>';
+  const sg=x=>(x>=0?'+':'')+x.toFixed(1);
+  const rows=[];
+  const h2h=(team,opp,o)=>o.n? `${team.name} vs ${opp.name}: ${o.n.toFixed(0)} games in the data, ${sp==='nba'?sg(o.raw)+' pts/game':sg(o.raw)+' goals/game'} versus expectation. Counted at ${Math.round(o.n/(o.n+8)*100)}% weight because small samples are noisy → ${sp==='nba'?sg(o.v)+' pts/100':sg(o.v)+' goals/game'}.` : `${team.name} vs ${opp.name}: no head-to-head games in the data.`;
+  if(sp==='nba'){
+    rows.push(`Home/road form: ${H.name} ${sg(F.splitsH)} pts/100 on offense at home, ${A.name} ${sg(F.splitsA)} pts/100 on the road (relative to the usual home-court edge).`);
+    if(F.styleHome||F.styleAway){
+      const lgx=lg||{};
+      rows.push(`Shot style: ${A.name} allow ${(A.opp_fg3*100).toFixed(1)}% from three${lgx.fg3?` (league ${(lgx.fg3*100).toFixed(1)}%)`:''}; ${H.name} allow ${(H.opp_fg3*100).toFixed(1)}%. Shooters' three- and two-point rates are adjusted to each defense.`);
+    }
+  } else {
+    rows.push(`Home/road form: ${H.name} goal-rate ×${F.mH.toFixed(2)}, ${A.name} ×${F.mA.toFixed(2)} (includes home ice, home/road splits and head-to-head).`);
+  }
+  rows.push(h2h(H,A,F.h2hHome)); rows.push(h2h(A,H,F.h2hAway));
+  return `<div class="card"><h2>Matchup factors</h2>${rows.map(x=>`<div class="note" style="margin:0 0 6px">${x}</div>`).join('')}</div>`;
+}
+
+const pct = x => (x*100).toFixed(1)+'%';
+
+function histSvg(margins, lo, hi, step){
+  const bins = {}; for (const m of margins){ const c=Math.max(lo,Math.min(hi,m)); const b=Math.round(c/step)*step; bins[b]=(bins[b]||0)+1; }
+  const keys=[]; for(let k=Math.round(lo/step)*step;k<=hi;k+=step) keys.push(k);
+  const mx=Math.max(...keys.map(k=>bins[k]||0),1), W=340,H=110,bw=W/keys.length;
+  const bars=keys.map((k,i)=>{const v=(bins[k]||0),h=v/mx*(H-18);return `<rect x="${i*bw+1}" y="${H-14-h}" width="${bw-2}" height="${h}" fill="${k>0?'var(--home)':k<0?'var(--away)':'var(--mute)'}" opacity=".85"/>`}).join('');
+  const lab=keys.filter((k,i)=>i%Math.ceil(keys.length/8)===0).map(k=>`<text x="${keys.indexOf(k)*bw+bw/2}" y="${H-2}" text-anchor="middle">${k}</text>`).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Distribution of final margin (home minus away)">${bars}${lab}</svg>`;
+}
+
+function run(){
+  const a=$('away').value, h=$('home').value; if(!a||!h) return;
+  if (a===h){ $('results').innerHTML='<div class="banner">Pick two different teams.</div>'; return; }
+  const n=Math.max(1000,Math.min(200000,+$('nsim').value||10000));
+  cancelAnimationFrame(raf); $('results').innerHTML='<div class="card">Running '+n.toLocaleString()+' simulations…</div>';
+  setTimeout(()=>{
+    const A=teams()[a], H=teams()[h], t0=performance.now(); let r, html, opts;
+    const title=`${A.name} @ ${H.name}`;
+    if (sport==='nba'){
+      opts={n,outHome:outSet('h'),outAway:outSet('a'),leagueOrtg:D.nba.league.ortg,leagueStyle:D.nba.league,homeKey:h,awayKey:a,useMatchup:$('useM').checked,seed:(Date.now()&0xffffff)}; r=Sim.simulateNBA(H,A,opts);
+      var rowsH=r.homePlayers.map((p,i)=>[p,r.homePlayerAvg[i]]).sort((x,y)=>y[1]-x[1]).slice(0,8);
+      var rowsA=r.awayPlayers.map((p,i)=>[p,r.awayPlayerAvg[i]]).sort((x,y)=>y[1]-x[1]).slice(0,8);
+      var pt=(rows,ttl)=>`<h2 style="margin-top:12px">${ttl} — avg points</h2><table><tr><th>Player</th><th>PTS</th></tr>${rows.map(x=>`<tr><td>${x[0]}</td><td>${x[1].toFixed(1)}</td></tr>`).join('')}</table>`;
+      var tables=pt(rowsA,A.name)+pt(rowsH,H.name);
+      var hist=histSvg(r.margins,-30,30,3);
+      var unit='pts';
+    } else {
+      opts={n,outHome:outSet('h'),outAway:outSet('a'),goalieHome:$('gHome').value,goalieAway:$('gAway').value,league:D.nhl.league,homeKey:h,awayKey:a,useMatchup:$('useM').checked,seed:(Date.now()&0xffffff)}; r=Sim.simulateNHL(H,A,opts);
+      var gp=(names,arr)=>names.map((p,i)=>[p,arr[i]]).sort((x,y)=>y[1]-x[1]).slice(0,6);
+      var pt2=(rows,ttl)=>`<h2 style="margin-top:12px">${ttl} — chance to score</h2><table><tr><th>Player</th><th>P(goal)</th></tr>${rows.map(x=>`<tr><td>${x[0]}</td><td>${pct(x[1])}</td></tr>`).join('')}</table>`;
+      var tables=pt2(gp(r.awayPlayers,r.awayScoreProb),A.name)+pt2(gp(r.homePlayers,r.homeScoreProb),H.name);
+      var hist=histSvg(r.margins,-6,6,1);
+      var unit='goals';
+    }
+    const hp=r.homeWinPct, ap=1-hp;
+    const spread = r.avgMargin;
+    const extra = sport==='nhl'
+      ? `<div class="note">Regulation: ${pct((r.regHome+r.regAway)/n)} · OT: ${pct((r.otHome+r.otAway)/n)} · Shootout: ${pct((r.soHome+r.soAway)/n)}. Goalies: ${r.goalies.away} / ${r.goalies.home}.</div>`
+      : `<div class="note">Overtime in ${pct(r.otPct)} of sims.${(r.warnings||[]).map(w=>' '+w).join('')}</div>`;
+    $('results').innerHTML=`
+      <div class="card">
+        <h2>${title}</h2>
+        <div class="big"><span>${A.name} ${pct(ap)}</span><span>${H.name} ${pct(hp)}</span></div>
+        <div class="bar"><div style="width:${ap*100}%;background:var(--away)">${(ap*100).toFixed(0)}%</div><div style="width:${hp*100}%;background:var(--home)">${(hp*100).toFixed(0)}%</div></div>
+        <div class="stats">
+          <div><b>${r.avgAway.toFixed(sport==='nba'?1:2)} – ${r.avgHome.toFixed(sport==='nba'?1:2)}</b><span>avg score</span></div>
+          <div><b>${spread>=0?H.name.split(' ').pop():A.name.split(' ').pop()} ${Math.abs(spread).toFixed(sport==='nba'?1:2)}</b><span>avg margin</span></div>
+          <div><b>${r.avgTotal.toFixed(sport==='nba'?1:2)}</b><span>avg total</span></div>
+        </div>
+        ${extra}
+      </div>
+      <div class="card"><h2>Margin distribution (home − away, ${unit})</h2>${hist}</div>
+      <div class="card">${tables}<div class="note">${n.toLocaleString()} sims in ${Math.round(performance.now()-t0)} ms. Estimates, not guarantees — see the README for model limits.</div></div>`;
+    $('results').insertAdjacentHTML('beforeend',factorsHtml(sport,r,A,H,sport==='nba'?D.nba.league:D.nhl.league));
+    lastRun={sport,A,H,r,opts};
+    $('results').insertAdjacentHTML('beforeend','<div class="card" id="replayCard"><h2>Most likely game</h2><div class="note" style="margin:0 0 8px">Replays the simulated game closest to the average result, scoring play by play.</div><button class="run" id="watch" style="margin-top:0">▶ Watch the game</button><div id="replay"></div></div>');
+    $('watch').onclick=startReplay;
+    $('results').scrollIntoView({behavior:'smooth'});
+  },20);
+}
+
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{ sport=b.dataset.s; cancelAnimationFrame(raf); document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===b)); $('results').innerHTML=''; fillTeams(); });
+$('away').onchange=renderRosters; $('home').onchange=renderRosters; $('run').onclick=run;
+banners(); fillTeams();
+</script>
+</body>
+</html>
